@@ -374,6 +374,29 @@ export class StatisticsPage extends SettingsPage {
         return filePath.substring(filePath.lastIndexOf("/") + 1).replace(/\.md$/, "");
     }
 
+    /** Identities of every card currently in the deck, matching the review log's cardId shape. */
+    private liveCardIds(): Set<string> {
+        const iteratorOrder: IIteratorOrder = {
+            deckOrder: DeckOrder.PrevDeckComplete_Sequential,
+            repItemOrder: RepItemOrder.DueFirstSequential,
+        };
+        const iterator: IDeckTreeIterator = new DeckTreeIterator(
+            iteratorOrder,
+            this.dataManager.osrCore.reviewableDeckTree.clone(),
+        );
+        const ids: Set<string> = new Set<string>();
+        iterator.setIteratorTopicPath(TopicPath.emptyPath);
+        while (iterator.nextRepItem()) {
+            const card: Card | null = iterator.currentRepItem as Card | null;
+            if (card === null) continue;
+            const front: string = card.question.questionText.actualQuestion
+                .split("\n")[0]
+                .substring(0, 120);
+            ids.add(`${card.question.note.filePath}#${card.cardIdx}#${front}`);
+        }
+        return ids;
+    }
+
     private calculatePerNoteStats(): Map<string, Stats> {
         const iteratorOrder: IIteratorOrder = {
             deckOrder: DeckOrder.PrevDeckComplete_Sequential,

@@ -19,6 +19,7 @@ import { RepItemScheduleInfo } from "src/scheduling/algorithms/base/rep-item-sch
 import { RepItemState, ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
 import { DueDateHistogram } from "src/scheduling/due-date-histogram";
 import { globalDateProvider } from "src/utils/dates";
+import { ReviewLog } from "src/utils/review-log";
 
 export interface IFlashcardReviewSequencer {
     get hasCurrentCard(): boolean;
@@ -302,6 +303,8 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 this.dueDateFlashcardHistogram.decrement(nDays);
             }
             this.dueDateFlashcardHistogram.increment(this.currentCard.scheduleInfo.interval);
+
+            await this.logReview(response, oldSchedule, this.currentCard.scheduleInfo);
         } else if (response === ReviewResponse.Reset) {
             shortTermRequeue = "immediate";
         }
@@ -323,6 +326,25 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 this.deleteCurrentCard();
             }
         }
+    }
+
+    private async logReview(
+        response: ReviewResponse,
+        oldSchedule: RepItemScheduleInfo | null,
+        newSchedule: RepItemScheduleInfo,
+    ): Promise<void> {
+        const question: Question = this.currentQuestion;
+        const front: string = question.questionText.actualQuestion.split("\n")[0].substring(0, 120);
+        await ReviewLog.append({
+            response: ReviewResponse[response],
+            note: question.note.filePath,
+            card: front,
+            cardIdx: this.currentCard.cardIdx,
+            wasNew: oldSchedule === null,
+            oldIntervalDays: oldSchedule?.interval ?? null,
+            newIntervalDays: newSchedule.interval,
+            newDue: newSchedule.dueDate?.format("YYYY-MM-DD") ?? null,
+        });
     }
 
     private async burySiblingCards(): Promise<void> {

@@ -12,6 +12,7 @@ import { NoteReviewQueue } from "src/note/note-review-queue";
 import { ReminderManager } from "src/scheduling/reminder-manager";
 import { REVIEW_QUEUE_VIEW_TYPE } from "src/ui/obsidian-ui-components/item-views/review-queue-list-view";
 import { UIManager } from "src/ui/ui-manager";
+import { ReviewLog } from "src/utils/review-log";
 import { TextDirection } from "src/utils/strings";
 
 export default class SRPlugin extends Plugin {
@@ -34,6 +35,11 @@ export default class SRPlugin extends Plugin {
                 async (settings: SRSettings) => {
                     await pluginDataManager.writeSettings(settings);
                 },
+            );
+
+            ReviewLog.init(
+                this.app.vault,
+                pluginDataManager.pluginData.settings.scheduleDataVaultLocation,
             );
 
             this.dataManager = new DataManager(this, pluginDataManager, settingsManager);

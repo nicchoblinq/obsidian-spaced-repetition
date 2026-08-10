@@ -46,6 +46,8 @@ export class MainPage extends SettingsPage {
 
         this.containerEl.addClass("sr-main-page");
 
+        this.containerEl.createEl("h2", { text: "niccho's spaced repetition" });
+
         const mainSettingsGroup = new SettingGroup(this.containerEl).setHeading(
             t("SETTINGS_TAB_HEADING"),
         );

@@ -2,6 +2,24 @@ import { Chart, ChartTypeRegistry } from "chart.js";
 
 import SettingsItemOverrideComponent from "src/ui/obsidian-ui-components/content-container/settings-page/statistics-page/settings-item-override-component";
 
+export interface ChartSeries {
+    label: string;
+    data: number[];
+}
+
+const SERIES_PALETTE: string[] = [
+    "#2196f3",
+    "#4caf50",
+    "#ff9800",
+    "#9c27b0",
+    "#f44336",
+    "#00bcd4",
+    "#ffc107",
+    "#795548",
+    "#607d8b",
+    "#e91e63",
+];
+
 /**
  * Represents a chart component.
  *
@@ -27,6 +45,9 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
         seriesTitle = "",
         xAxisTitle = "",
         yAxisTitle = "",
+        series: ChartSeries[] | null = null,
+        stacked = false,
+        filterFromEnd = false,
     ) {
         super(parentContainerEl);
         this.containerEl.addClass("sr-chart-container");
@@ -46,6 +67,7 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
         if (type !== "pie") {
             scales = {
                 x: {
+                    stacked,
                     title: {
                         display: xAxisTitle !== "",
                         text: xAxisTitle,
@@ -53,6 +75,7 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
                     },
                 },
                 y: {
+                    stacked,
                     title: {
                         display: yAxisTitle !== "",
                         text: yAxisTitle,
@@ -64,20 +87,42 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
             backgroundColor = ["#2196f3", "#4caf50", "green"];
         }
 
-        const shouldFilter = canvasId === "forecastChart" || canvasId === "intervalsChart";
+        const shouldFilter =
+            canvasId === "forecastChart" ||
+            canvasId === "intervalsChart" ||
+            canvasId === "reviewActivityChart";
+
+        const sliceForPeriod = (values: unknown[], n: number | null): unknown[] => {
+            if (n === null) return values;
+            return filterFromEnd ? values.slice(-n) : values.slice(0, n);
+        };
+
+        const buildDatasets = (n: number | null) => {
+            if (series !== null) {
+                return series.map((s: ChartSeries, i: number) => ({
+                    label: s.label,
+                    backgroundColor: SERIES_PALETTE[i % SERIES_PALETTE.length],
+                    data: sliceForPeriod(s.data, n) as number[],
+                    borderRadius: 4,
+                }));
+            }
+            return [
+                {
+                    label: seriesTitle,
+                    backgroundColor,
+                    data: sliceForPeriod(data, n) as number[],
+                    borderRadius: 4,
+                },
+            ];
+        };
+
+        const initialN: number | null = shouldFilter ? 31 : null;
 
         const statsChart = new Chart(activeDocument.getElementById(canvasId) as HTMLCanvasElement, {
             type,
             data: {
-                labels: shouldFilter ? labels.slice(0, 31) : labels,
-                datasets: [
-                    {
-                        label: seriesTitle,
-                        backgroundColor,
-                        data: shouldFilter ? data.slice(0, 31) : data,
-                        borderRadius: 4,
-                    },
-                ],
+                labels: sliceForPeriod(labels, initialN) as string[],
+                datasets: buildDatasets(initialN),
             },
             options: {
                 scales,
@@ -101,7 +146,10 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
                         padding: { top: 0, bottom: 24 },
                     },
                     legend: {
-                        display: false,
+                        display: series !== null && series.length > 1,
+                        labels: {
+                            color: textColor,
+                        },
                     },
                 },
                 aspectRatio: 2,
@@ -117,29 +165,20 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
                 "sr-chart-period",
             ) as HTMLSelectElement;
             chartPeriodEl.addEventListener("change", () => {
-                let filteredLabels, filteredData;
                 const chartPeriod = chartPeriodEl.value;
+                let n: number | null;
                 if (chartPeriod === "month") {
-                    filteredLabels = labels.slice(0, 31);
-                    filteredData = data.slice(0, 31);
+                    n = 31;
                 } else if (chartPeriod === "quarter") {
-                    filteredLabels = labels.slice(0, 91);
-                    filteredData = data.slice(0, 91);
+                    n = 91;
                 } else if (chartPeriod === "year") {
-                    filteredLabels = labels.slice(0, 366);
-                    filteredData = data.slice(0, 366);
+                    n = 366;
                 } else {
-                    filteredLabels = labels;
-                    filteredData = data;
+                    n = null;
                 }
 
-                statsChart.data.labels = filteredLabels;
-                statsChart.data.datasets[0] = {
-                    ...statsChart.data.datasets[0],
-                    label: seriesTitle,
-                    backgroundColor,
-                    data: filteredData,
-                };
+                statsChart.data.labels = sliceForPeriod(labels, n) as string[];
+                statsChart.data.datasets = buildDatasets(n);
                 statsChart.update();
             });
         }

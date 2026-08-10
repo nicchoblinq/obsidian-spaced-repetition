@@ -12,6 +12,10 @@ export class ReviewLog {
     private static vault: Vault | null = null;
     private static logPath: string = "Spaced Repetition/review-log.jsonl";
 
+    static get path(): string {
+        return ReviewLog.logPath;
+    }
+
     static init(vault: Vault, folder?: string): void {
         ReviewLog.vault = vault;
         if (folder && folder.trim().length > 0) {

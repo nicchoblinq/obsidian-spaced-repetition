@@ -7,7 +7,10 @@ import {
     Chart,
     Legend,
     LinearScale,
+    LineController,
+    LineElement,
     PieController,
+    PointElement,
     SubTitle,
     Title,
     Tooltip,
@@ -46,11 +49,17 @@ interface ReviewLogEntry {
     date: string;
     response: string;
     note: string;
+    cardId: string;
+    wasNew: boolean;
+    newIntervalDays: number;
 }
 
 Chart.register(
     BarElement,
     BarController,
+    LineController,
+    LineElement,
+    PointElement,
     Legend,
     Title,
     Tooltip,
@@ -72,6 +81,9 @@ export class StatisticsPage extends SettingsPage {
 
     private forecastChart: ChartComponent | null = null;
     private reviewActivityChart: ChartComponent | null = null;
+    private retentionChart: ChartComponent | null = null;
+    private deckGrowthChart: ChartComponent | null = null;
+    private introducedChart: ChartComponent | null = null;
     private intervalsChart: ChartComponent | null = null;
     private easesChart: ChartComponent | null = null;
     private cardTypesChart: ChartComponent | null = null;
@@ -119,6 +131,9 @@ export class StatisticsPage extends SettingsPage {
     destroyCharts(): void {
         if (this.forecastChart !== null) this.forecastChart.destroy();
         if (this.reviewActivityChart !== null) this.reviewActivityChart.destroy();
+        if (this.retentionChart !== null) this.retentionChart.destroy();
+        if (this.deckGrowthChart !== null) this.deckGrowthChart.destroy();
+        if (this.introducedChart !== null) this.introducedChart.destroy();
         if (this.intervalsChart !== null) this.intervalsChart.destroy();
         if (this.easesChart !== null) this.easesChart.destroy();
         if (this.cardTypesChart !== null) this.cardTypesChart.destroy();
@@ -126,6 +141,9 @@ export class StatisticsPage extends SettingsPage {
 
         this.forecastChart = null;
         this.reviewActivityChart = null;
+        this.retentionChart = null;
+        this.deckGrowthChart = null;
+        this.introducedChart = null;
         this.intervalsChart = null;
         this.easesChart = null;
         this.cardTypesChart = null;
@@ -416,6 +434,10 @@ export class StatisticsPage extends SettingsPage {
                         ts?: string;
                         response?: string;
                         note?: string;
+                        card?: string;
+                        cardIdx?: number;
+                        wasNew?: boolean;
+                        newIntervalDays?: number;
                     };
                     const when = new Date(parsed.ts ?? "");
                     if (isNaN(when.valueOf())) continue;
@@ -426,6 +448,9 @@ export class StatisticsPage extends SettingsPage {
                         date: `${year}-${month}-${day}`,
                         response: String(parsed.response ?? "?"),
                         note: this.noteBasename(String(parsed.note ?? "?")),
+                        cardId: `${String(parsed.note ?? "?")}#${String(parsed.cardIdx ?? 0)}#${String(parsed.card ?? "?")}`,
+                        wasNew: parsed.wasNew === true,
+                        newIntervalDays: Number(parsed.newIntervalDays ?? 0),
                     });
                 } catch {
                     // Skip malformed lines rather than losing the whole chart

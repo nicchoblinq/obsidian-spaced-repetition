@@ -102,6 +102,7 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
                 return series.map((s: ChartSeries, i: number) => ({
                     label: s.label,
                     backgroundColor: SERIES_PALETTE[i % SERIES_PALETTE.length],
+                    borderColor: SERIES_PALETTE[i % SERIES_PALETTE.length],
                     data: sliceForPeriod(s.data, n) as number[],
                     borderRadius: 4,
                 }));
@@ -110,6 +111,7 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
                 {
                     label: seriesTitle,
                     backgroundColor,
+                    borderColor: backgroundColor[0],
                     data: sliceForPeriod(data, n) as number[],
                     borderRadius: 4,
                 },
